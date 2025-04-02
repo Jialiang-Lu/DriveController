@@ -1,0 +1,94 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:XeryonApp.Views"
+        xmlns:vm="using:XeryonApp.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:converters="clr-namespace:XeryonApp.Converters"
+        xmlns:controls="clr-namespace:XeryonApp.Controls"
+        mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800" MinWidth="1200"
+        x:Class="XeryonApp.Views.MainWindow"
+        x:DataType="vm:MainViewModel"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="XeryonApp">
+
+    <Design.DataContext>
+        <!-- This only sets the DataContext for the previewer in an IDE,
+             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
+        <vm:MainViewModel/>
+    </Design.DataContext>
+
+  <Window.Resources>
+    <converters:BoolToBrushConverter x:Key="BoolToBrush"/>
+    <converters:BoolToTextConverter x:Key="BoolToText"/>
+  </Window.Resources>
+
+  <StackPanel>
+    <!--<Grid ColumnDefinitions="150,150,*" RowDefinitions="50">
+      <ComboBox Name="SerialPorts" ItemsSource="{Binding SerialPorts}" Grid.Row="0" Grid.Column="0"/>
+      <Button Name="Add" Content="Add" Command="{Binding AddDevice}" CommandParameter="{Binding #SerialPorts.SelectedItem}" Grid.Row="0" Grid.Column="1"/>
+    </Grid>-->
+    <ItemsControl ItemsSource="{Binding Drives}">
+      <ItemsControl.ItemsPanel>
+        <ItemsPanelTemplate>
+          <StackPanel Orientation="Vertical" />
+        </ItemsPanelTemplate>
+      </ItemsControl.ItemsPanel>
+      <ItemsControl.ItemTemplate>
+        <DataTemplate DataType="{x:Type vm:Drive}">
+          <Border BorderBrush="Gray" BorderThickness="2" CornerRadius="3" Padding="4" Margin="4">
+            <Grid RowDefinitions="*,*,*" ShowGridLines="False">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="140"/>
+                <ColumnDefinition Width="60"/>
+                <ColumnDefinition Width="160"/>
+                <ColumnDefinition Width="140"/>
+                <ColumnDefinition Width="140"/>
+                <ColumnDefinition Width="*" MinWidth="100"/>
+                <ColumnDefinition Width="*" MinWidth="100"/>
+                <ColumnDefinition Width="*" MinWidth="100"/>
+                <ColumnDefinition Width="*" MinWidth="100"/>
+              </Grid.ColumnDefinitions>
+
+              <TextBlock Text="{Binding Address, StringFormat='Drive #{0}'}" FontWeight="Bold" Grid.Column="0" Grid.Row="0"/>
+              <Button Name="Reset" Content="Reset" Command="{Binding Reset}" Grid.Column="0" Grid.Row="1"/>
+              <Button Name="Test" Content="Flash LED" Command="{Binding Test}" Grid.Column="0" Grid.Row="2"/>
+
+              <!--<TextBlock Text="{Binding StatusString}" TextWrapping="Wrap" Grid.Column="1" Grid.Row="1" Grid.RowSpan="2"/>-->
+
+              <TextBlock Text="Speed" Classes="r1" Grid.Column="1" Grid.Row="0"/>
+              <TextBlock Text="Step" Classes="r1" Grid.Column="1" Grid.Row="1"/>
+              <TextBlock Text="Target" Classes="r1" Grid.Column="1" Grid.Row="2"/>
+
+              <controls:CustomNumericUpDown Name="Speed" Value="{Binding Speed, UpdateSourceTrigger=Explicit}" FormatString="{}{0:F0}" LowIncrement="1" HighIncrement="1000" Minimum="10" Maximum="5000" CustomValues="{Binding FixedSpeeds}" Grid.Column="2" Grid.Row="0"/>
+              <controls:CustomNumericUpDown Name="Step" Value="{Binding Step, UpdateSourceTrigger=Explicit}" FormatString="{}{0:F2}" LowIncrement="0.1" HighIncrement="1" Minimum="0.1" Maximum="20" CustomValues="{Binding FixedSteps}" Grid.Column="2" Grid.Row="1"/>
+              <NumericUpDown Name="Target" Value="{Binding TargetPosition, UpdateSourceTrigger=Explicit}" Minimum="-50" Maximum="50" FormatString="{}{0:F2}" Increment="1" Grid.Column="2" Grid.Row="2"/>
+
+              <Button Name="SetZero" Content="{Binding ZeroSet, Converter={StaticResource BoolToText}, ConverterParameter='Unset Zero|Set Zero'}" Command="{Binding SetZero}" Grid.Column="3" Grid.Row="0"/>
+              <Grid ColumnDefinitions="*,*" Grid.Column="3" Grid.Row="1">
+                <Button Name="StepDown" Content="Down" Command="{Binding StepDown}" CommandParameter="{Binding Step}" Grid.Column="0" Grid.Row="0"/>
+                <Button Name="StepUp" Content="Up" Command="{Binding StepUp}" CommandParameter="{Binding Step}" Grid.Column="1" Grid.Row="0"/>
+              </Grid>
+              <Button Name="ResetTarget" Content="Reset Target" Command="{Binding ResetTarget}" Grid.Column="3" Grid.Row="2"/>
+
+              <Button Name="GoToZero" Content="Go To Zero" Command="{Binding GoToZero}" Grid.Column="4" Grid.Row="0"/>
+              <ToggleButton Name="RelativeMode" Content="Relative" IsChecked="{Binding RelativeMode}" Grid.Column="4" Grid.Row="1"/>
+              <ToggleButton Name="StartStop" Content="{Binding IsMoving, Converter={StaticResource BoolToText}, ConverterParameter=Stop|Start}" IsChecked="{Binding IsMoving}" IsEnabled="{Binding !TargetReached}" Command="{Binding StartStop}" Grid.Column="4" Grid.Row="2"/>
+
+              <TextBlock Text="Absolute:" Classes="r1" Grid.Column="5" Grid.Row="0"/>
+              <TextBlock Text="{Binding AbsolutePosition, StringFormat={}{0:F3}}" Classes="l1" Grid.Column="6" Grid.Row="0"/>
+              <TextBlock Text="Relative:" IsVisible="{Binding RelativeMode}" Classes="r1" Grid.Column="5" Grid.Row="1"/>
+              <TextBlock Text="{Binding CurrentPosition, StringFormat={}{0:F3}}" IsVisible="{Binding RelativeMode}" Classes="l1" Grid.Column="6" Grid.Row="1"/>
+              <TextBlock Text="Target:" IsVisible="{Binding !TargetReached}" Classes="r1" Grid.Column="7" Grid.Row="0"/>
+              <TextBlock Text="{Binding TargetPosition, StringFormat={}{0:F3}}" IsVisible="{Binding !TargetReached}" Classes="l1" Grid.Column="8" Grid.Row="0"/>
+
+              <ProgressBar Minimum="{Binding MinRange}" Maximum="{Binding MaxRange}" Value="{Binding AbsolutePosition}" Foreground="{Binding IsMoving, Converter={StaticResource BoolToBrush}, ConverterParameter=Gold|DeepSkyBlue}" Height="30" Grid.Column="5" Grid.Row="2" Grid.ColumnSpan="4"/>
+              <ProgressBar Minimum="{Binding MinRange}" Maximum="{Binding MaxRange}" Value="{Binding ZeroPosition}" Background="Transparent" Foreground="Green" Opacity="0.3" Height="30" Grid.Column="5" Grid.Row="2" Grid.ColumnSpan="4"/>
+            </Grid>
+          </Border>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+  </StackPanel>
+
+</Window>
