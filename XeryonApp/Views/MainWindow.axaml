@@ -37,7 +37,7 @@
       <ItemsControl.ItemTemplate>
         <DataTemplate DataType="{x:Type vm:Drive}">
           <Border BorderBrush="Gray" BorderThickness="2" CornerRadius="3" Padding="4" Margin="4">
-            <Grid RowDefinitions="*,*,*" ShowGridLines="False">
+            <Grid RowDefinitions="*,*,*" IsEnabled="{Binding Enabled}">
               <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="140"/>
                 <ColumnDefinition Width="60"/>
@@ -51,8 +51,9 @@
               </Grid.ColumnDefinitions>
 
               <TextBlock Text="{Binding Address, StringFormat='Drive #{0}'}" FontWeight="Bold" Grid.Column="0" Grid.Row="0"/>
-              <Button Name="Reset" Content="Reset" Command="{Binding Reset}" Grid.Column="0" Grid.Row="1"/>
-              <Button Name="Test" Content="Flash LED" Command="{Binding Test}" Grid.Column="0" Grid.Row="2"/>
+              <Button Name="Reset" Content="Reset" Command="{Binding Reset}" IsEnabled="{Binding SafeToMove}" CommandParameter="10000" Grid.Column="0" Grid.Row="1"/>
+              <Button Name="FindTop" Content="Go To Top" Command="{Binding MoveTop}" Grid.Column="0" Grid.Row="2"/>
+              <!--<Button Name="Test" Content="Flash LED" Command="{Binding Test}" Grid.Column="0" Grid.Row="2"/>-->
 
               <!--<TextBlock Text="{Binding StatusString}" TextWrapping="Wrap" Grid.Column="1" Grid.Row="1" Grid.RowSpan="2"/>-->
 
@@ -60,7 +61,7 @@
               <TextBlock Text="Step" Classes="r1" Grid.Column="1" Grid.Row="1"/>
               <TextBlock Text="Target" Classes="r1" Grid.Column="1" Grid.Row="2"/>
 
-              <controls:CustomNumericUpDown Name="Speed" Value="{Binding Speed, UpdateSourceTrigger=Explicit}" FormatString="{}{0:F0}" LowIncrement="1" HighIncrement="1000" Minimum="10" Maximum="5000" CustomValues="{Binding FixedSpeeds}" Grid.Column="2" Grid.Row="0"/>
+              <controls:CustomNumericUpDown Name="Speed" Value="{Binding Speed, UpdateSourceTrigger=Explicit}" FormatString="{}{0:F0}" LowIncrement="1" HighIncrement="1000" Minimum="10" Maximum="10000" CustomValues="{Binding FixedSpeeds}" Grid.Column="2" Grid.Row="0"/>
               <controls:CustomNumericUpDown Name="Step" Value="{Binding Step, UpdateSourceTrigger=Explicit}" FormatString="{}{0:F2}" LowIncrement="0.1" HighIncrement="1" Minimum="0.1" Maximum="20" CustomValues="{Binding FixedSteps}" Grid.Column="2" Grid.Row="1"/>
               <NumericUpDown Name="Target" Value="{Binding TargetPosition, UpdateSourceTrigger=Explicit}" Minimum="-50" Maximum="50" FormatString="{}{0:F2}" Increment="1" Grid.Column="2" Grid.Row="2"/>
 

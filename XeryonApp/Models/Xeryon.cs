@@ -4,22 +4,14 @@ using System.Diagnostics;
 using System.IO;
 using System.IO.Ports;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace XeryonApp.Models;
 
-public class Xeryon
+public partial class Xeryon : IDisposable
 {
-    private readonly string _port;
-    private readonly int _baudRate;
-    private readonly List<Axis> _axisList = new();
-    private SerialPort? _serialPort;
-    private CancellationTokenSource? _cancellationTokenSource;
-    private Task? _dataProcessingTask;
-    private string _settingsFile = "settings_default.txt";
-    private readonly Dictionary<string, double> _settings = new(101);
-
     public string SettingsFile
     {
         get => _settingsFile;
@@ -32,12 +24,46 @@ public class Xeryon
         }
     }
 
+    public bool Connected
+    {
+        get => _connected;
+        private set
+        {
+            if (_connected != value)
+            {
+                _connected = value;
+                ConnectionUpdated?.Invoke(value);
+            }
+        }
+    }
+
+    public event Action<bool>? ConnectionUpdated;
+
+    private string _port;
+    private readonly int _baudRate;
+    private readonly List<Axis> _axisList = new();
+    private SerialPort? _serialPort;
+    private CancellationTokenSource? _cancellationTokenSource;
+    private Task? _dataProcessingTask;
+    private string _settingsFile = "settings_default.txt";
+    private readonly List<(char? letter, string tag, double value)> _settings =
+        new List<(char? letter, string tag, double value)>(64);
+    private bool _connected;
+
+    [GeneratedRegex(@"^(?:(?<letter>[A-Z]):)?(?<tag>\w+)\s*=\s*(?<value>[-+]?[0-9]*\.?[0-9]+)", RegexOptions.Compiled)]
+    private static partial Regex SettingsPattern();
+
     public Xeryon(string port, int baudRate, string settingsFile = "")
     {
         _port = port;
         _baudRate = baudRate;
         SettingsFile = settingsFile;
+        if (!Path.Exists(_settingsFile))
+            throw new FileNotFoundException($"Settings file not found: {_settingsFile}");
     }
+
+    public Axis AddAxis(char letter) => AddAxis(letter,
+        GetModel() ?? throw new KeyNotFoundException("Model not found in the settings file."));
 
     public Axis AddAxis(char letter, Stage stage)
     {
@@ -61,6 +87,16 @@ public class Xeryon
             return;
         }
 
+        Connect();
+        Reset();
+    }
+
+    public void Connect(string? port = null)
+    {
+        if (port != null)
+            _port = port;
+        Disconnect();
+
         _serialPort = new SerialPort(_port, _baudRate)
         {
             DataBits = 8,
@@ -71,34 +107,37 @@ public class Xeryon
             WriteTimeout = 1000
         };
 
-        try
-        {
-            _serialPort.Open();
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"Failed to open serial port: {ex.Message}");
-            return;
-        }
-
+        _serialPort.Open();
         Debug.WriteLine($"Serial port {_port} opened successfully.");
         _cancellationTokenSource = new CancellationTokenSource();
-        _dataProcessingTask = Task.Run(() => ProcessDataAsync(_cancellationTokenSource.Token));
-
-        Reset();
+        _dataProcessingTask = Task.Run(ProcessDataAsync);
+        Connected = true;
+        _dataProcessingTask.ContinueWith(_ =>
+        {
+            Disconnect();
+        });
     }
 
-    public void Stop()
+    private void Disconnect()
     {
+        Connected = false;
+        _cancellationTokenSource?.Cancel();
+        _serialPort?.Close();
+        _serialPort?.Dispose();
+        _dataProcessingTask?.Wait();
+    }
+
+    public void Dispose()
+    {
+        if (!Connected)
+            return;
+
         foreach (var axis in _axisList)
         {
             axis.Stop();
         }
 
-        _cancellationTokenSource?.Cancel();
-        _serialPort?.Close();
-        _serialPort?.Dispose();
-        _dataProcessingTask?.Wait();
+        Disconnect();
     }
 
     public void SendCommand(Axis? axis, string command)
@@ -114,7 +153,7 @@ public class Xeryon
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"Failed to send command: {ex.Message}");
+            throw new IOException($"Failed to send command: {ex.Message}");
         }
     }
 
@@ -141,81 +180,93 @@ public class Xeryon
         }
     }
 
-    public void ReadSettings()
+    public void LoadSettings()
     {
-        try
+        _settings.Clear();
+        using var file = new StreamReader(SettingsFile);
+        while (file.ReadLine() is { } line)
         {
-            using var file = new StreamReader(SettingsFile);
-            while (file.ReadLine() is { } line)
+            var match = SettingsPattern().Match(line);
+            if (match.Success)
             {
-                // Remove unnecessary spaces, carriage returns, and line breaks
-                line = line.Replace(" ", "").Replace("\r", "").Replace("\n", "");
-
-                // Ignore lines without '=' or those starting with comments
-                if (!line.Contains('=') || line.StartsWith("%"))
-                    continue;
-
-                // Remove the comment
-                if (line.Contains('%'))
-                    line = line.Split('%')[0];
-
-                var axis = _axisList.FirstOrDefault(); // Default to the first axis
-                if (line.Contains(':'))
-                {
-                    // Determine the axis based on the letter prefix
-                    var axisLetter = line[0];
-                    axis = GetAxis(axisLetter);
-                    if (axis == null)
-                        continue; // Ignore unknown axes
-                    line = line[2..]; // Remove the "X:" prefix
-                }
-
-                var parts = line.Split('=');
-                if (parts.Length == 2)
-                {
-                    var tag = parts[0];
-                    var value = parts[1];
-
-                    _settings[tag] = double.Parse(value);
-                    axis?.SetSetting(tag, value, true);
-                }
+                var letter = match.Groups["letter"].Success ? (char?)match.Groups["letter"].Value[0] : null;
+                var tag = match.Groups["tag"].Value;
+                var value = double.Parse(match.Groups["value"].Value);
+                _settings.Add((letter, tag, value));
             }
-        }
-        catch (Exception ex)
-        {
-            Debug.WriteLine($"Error reading settings file: {ex.Message}");
-            throw;
+            else
+            {
+                Debug.WriteLine($"Invalid settings line: {line}");
+            }
         }
     }
 
-    public double GetSetting(string tag) => _settings[tag];
+    public void ReadSettings()
+    {
+        if (_settings.Count == 0)
+            LoadSettings();
+        if (_axisList.Count == 0)
+            return;
+        foreach (var (letter, tag, value) in _settings)
+        {
+            var axis = letter == null ? _axisList[0] : GetAxis(letter.Value);
+            axis?.SetSetting(tag, value, true);
+        }
+    }
 
-    public bool TryGetSetting(string tag, out double value) => _settings.TryGetValue(tag, out value);
+    public bool TryGetSetting(string tag, out double value)
+    {
+        var index = _settings.FindIndex(s => s.tag == tag);
+        if (index < 0)
+        {
+            value = double.NaN;
+            return false;
+        }
+        value = _settings[index].value;
+        return true;
+    }
 
     public Stage? GetModel()
     {
-        ReadSettings();
-        var key = _settings.Keys.FirstOrDefault(key => key.StartsWith("XLA"));
-        return key == null ? null : Stage.GetStage($"{key}={_settings[key]}");
+        if (_settings.Count == 0)
+            LoadSettings();
+        var index = _settings.FindIndex(s => s.tag.StartsWith("XLA"));
+        return index < 0 ? null : Stage.GetStage($"{_settings[index].tag}={_settings[index].value}");
     }
 
-    private async Task ProcessDataAsync(CancellationToken token)
+    private async Task ProcessDataAsync()
     {
         Debug.WriteLine("Data processing thread started...");
+        var token = _cancellationTokenSource?.Token ?? CancellationToken.None;
 
-        while (!token.IsCancellationRequested && _serialPort!= null)
+        while (!token.IsCancellationRequested && Connected)
         {
             var line = "";
             try
             {
-                line = _serialPort.ReadLine().Trim();
-                ProcessLine(line);
+                line = _serialPort!.ReadLine().Trim();
+                if (string.IsNullOrEmpty(line)) return;
+                var match = SettingsPattern().Match(line);
+                if (!match.Success) return;
+                var letter = match.Groups["letter"].Success ? (char?)match.Groups["letter"].Value[0] : null;
+                var tag = match.Groups["tag"].Value;
+                if (tag.Length != 4)
+                    return;
+                var value = int.Parse(match.Groups["value"].Value);
+                var axis = letter == null ? _axisList[0] : GetAxis(letter.Value);
+                axis!.ReceiveData(tag, value);
 
-                await Task.Delay(10, token);
+                await Task.Delay(2, token);
+            }
+            catch (InvalidOperationException ex)
+            {
+                Debug.WriteLine($"Serial port error: {ex.Message}");
+                break;
             }
             catch (OperationCanceledException)
             {
                 Debug.WriteLine("Data processing thread was cancelled.");
+                break;
             }
             catch (Exception ex)
             {
@@ -224,37 +275,5 @@ public class Xeryon
         }
 
         Debug.WriteLine("Data processing thread stopped...");
-    }
-
-    private void ProcessLine(string? line)
-    {
-        if (string.IsNullOrEmpty(line)) return;
-
-        string tag, value;
-        Axis axis;
-
-        if (IsSingleAxisSystem && line.Contains('='))
-        {
-            tag = line.Split('=')[0];
-            value = line.Split('=')[1];
-            axis = _axisList[0];
-        }
-        else if (line.Contains(":"))
-        {
-            var parts = line.Split(':');
-            var axis0 = GetAxis(parts[0][0]);
-            if (axis0 == null) return;
-            axis = axis0;
-            var tagValue = parts[1].Split('=');
-            tag = tagValue[0];
-            value = tagValue[1];
-        }
-        else
-        {
-            Debug.WriteLine($"Unknown line format: {line}");
-            return;
-        }
-
-        axis.ReceiveData(tag, int.Parse(value));
     }
 }

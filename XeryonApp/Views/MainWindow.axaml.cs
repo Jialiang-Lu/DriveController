@@ -12,7 +12,7 @@ namespace XeryonApp.Views;
 
 public partial class MainWindow : Window
 {
-    private bool _isClosingConfirmed;
+    private bool _isClosingConfirmed, _closeRequested;
 
     public MainWindow()
     {
@@ -42,6 +42,9 @@ public partial class MainWindow : Window
         if (DataContext is IAsyncDisposable asyncDisposable && !_isClosingConfirmed)
         {
             e.Cancel = true;
+            if (_closeRequested)
+                return;
+            _closeRequested = true;
             await asyncDisposable.DisposeAsync();
             _isClosingConfirmed = true;
             Close();

@@ -81,13 +81,6 @@ public class Axis
     private int _updateNb;
     private bool _wasValidDPOS;
 
-    //private readonly HashSet<string> _notSettingsCommand = new HashSet<string>
-    //{
-    //    "DPOS", "EPOS", "HOME", "ZERO", "RSET", "INDX", "STEP", "MOVE", "STOP", "CONT", "SAVE", "STAT", "TIME", "SRNO",
-    //    "SOFT", "XLA3", "XLA1", "XRT1", "XRT3", "XLS1", "XLS3", "SFRQ", "SYNC", "SSPD", "ISPD"
-    //};
-    //private bool _isLogging;
-
     public Axis(Xeryon xeryon, char letter, Stage stage)
     {
         _xeryon = xeryon;
@@ -99,79 +92,6 @@ public class Axis
         //_isLogging = false;
     }
 
-    public Status Status => (Status)_data["STAT"];
-
-    public bool HasStatus(Status status) => Status.HasFlag(status);
-
-    public void FindIndex(int direction = 0)
-    {
-        Debug.WriteLine($"Searching for index {Status}");
-        SendCommand("INDX", direction);
-        _wasValidDPOS = false;
-
-        while (!HasStatus(Status.EncoderValid))
-        {
-            WaitForUpdate();
-            if (!HasStatus(Status.SearchingIndex))
-            {
-                Debug.WriteLine($"Index is not found, but stopped searching for index.");
-                break;
-            }
-
-            Thread.Sleep(200);
-        }
-
-        if (HasStatus(Status.EncoderValid))
-        {
-            Debug.WriteLine($"Index of axis {Letter} found.");
-        }
-    }
-
-    public void Step(Distance d)
-    {
-        var newDpos = _wasValidDPOS ? TargetPosition + d : CurrentPosition + d;
-        TargetPosition = newDpos;
-        WaitForUpdate();
-        Debug.WriteLine($"Stepped {d}");
-    }
-
-    public void SetSpeed(Distance speed)
-    {
-        var s = (int)speed[Distance.Type.UM];
-        SendCommand("SSPD", s);
-    }
-
-    public void StartScan(int direction, int execTime = 0)
-    {
-        SendCommand("SCAN", direction);
-        _wasValidDPOS = false;
-
-        if (execTime > 0)
-        {
-            Thread.Sleep(execTime * 1000);
-            SendCommand("SCAN", 0);
-        }
-    }
-
-    public void StopScan()
-    {
-        SendCommand("SCAN", 0);
-        _wasValidDPOS = false;
-    }
-
-    public void StartLogging()
-    {
-        //_isLogging = true;
-        SetSetting("POLI", 1);
-        WaitForUpdate();
-    }
-
-    public void EndLogging()
-    {
-        //_isLogging = false;
-        SetSetting("POLI", _pollingInterval);
-    }
-
     public void SendCommand(string tag)
     {
         SendCommandInternal(tag);
@@ -179,14 +99,6 @@ public class Axis
 
     public void SendCommand(string tag, int value)
     {
-        //if (_notSettingsCommand.Contains(tag))
-        //{
-        //    SendCommandInternal(tag, value);
-        //}
-        //else
-        //{
-        //    SetSetting(tag, value);
-        //}
         SendCommandInternal(tag, value);
         SetSetting(tag, value);
     }
@@ -230,6 +142,90 @@ public class Axis
     public bool TryGetSetting(string tag, out int value) => _settings.TryGetValue(tag, out value);
 
     public int GetData(string tag) => _data[tag];
+
+    public bool TryGetData(string tag, out int value) => _data.TryGetValue(tag, out value);
+
+    public Status Status => (Status)_data["STAT"];
+
+    public bool HasStatus(Status status) => Status.HasFlag(status);
+
+    public void FindIndex(int direction = 0)
+    {
+        Debug.WriteLine($"Searching for index {Status}");
+        SendCommand("INDX", direction);
+        _wasValidDPOS = false;
+
+        while (!HasStatus(Status.EncoderValid))
+        {
+            WaitForUpdate();
+            if (!HasStatus(Status.SearchingIndex))
+            {
+                Debug.WriteLine($"Index is not found, but stopped searching for index.");
+                break;
+            }
+
+            Thread.Sleep(200);
+        }
+
+        if (HasStatus(Status.EncoderValid))
+        {
+            Debug.WriteLine($"Index of axis {Letter} found.");
+        }
+    }
+
+    public void SetLimits(Distance lowLimit, Distance highLimit)
+    {
+        var low = (int)(lowLimit / _stage.EncoderResolution);
+        var high = (int)(highLimit / _stage.EncoderResolution);
+        SendCommand("LLIM", low);
+        SendCommand("HLIM", high);
+    }
+
+    public void Step(Distance d)
+    {
+        var newDpos = _wasValidDPOS ? TargetPosition + d : CurrentPosition + d;
+        TargetPosition = newDpos;
+        WaitForUpdate();
+        Debug.WriteLine($"Stepped {d}");
+    }
+
+    public void SetSpeed(Distance speed)
+    {
+        var s = (int)speed[Distance.Type.UM];
+        SendCommand("SSPD", s);
+        SendCommand("SAVE");
+    }
+
+    public void StartScan(int direction, int execTime = 0)
+    {
+        SendCommand("SCAN", direction);
+        _wasValidDPOS = false;
+
+        if (execTime > 0)
+        {
+            Thread.Sleep(execTime * 1000);
+            SendCommand("SCAN", 0);
+        }
+    }
+
+    public void StopScan()
+    {
+        SendCommand("SCAN", 0);
+        _wasValidDPOS = false;
+    }
+
+    public void StartLogging()
+    {
+        //_isLogging = true;
+        SetSetting("POLI", 1);
+        WaitForUpdate();
+    }
+
+    public void EndLogging()
+    {
+        //_isLogging = false;
+        SetSetting("POLI", _pollingInterval);
+    }
 
     public void ResumeMovement()
     {

@@ -1,5 +1,7 @@
 ﻿using System.Collections.ObjectModel;
 using System;
+using System.Diagnostics;
+using System.Linq;
 using System.Threading.Tasks;
 using MsBox.Avalonia;
 using MsBox.Avalonia.Dto;
@@ -11,36 +13,52 @@ namespace XeryonApp.ViewModels;
 
 public partial class MainViewModel : ViewModelBase, IAsyncDisposable
 {
-    public ObservableCollection<Drive> Drives { get; } = new();
+    public SortedObservableCollection<Drive> Drives { get; } = new();
 
     private readonly SerialPortWatcher _serialPortWatcher = new("XD-C");
-    private IDisposable? _addDriveSub;
+    private IDisposable? _portSub;
 
     [ReactiveCommand]
-    public void AddDrive(SerialPortInfo port)
+    public async void UpdateDrive(SerialPortInfo port)
     {
+        Debug.WriteLine($"Port {port} is added");
         try
         {
-            Drives.Add(new Drive(port));
+            var drive = Drives.FirstOrDefault(d => d.Port.Address == port.Address);
+            switch (drive)
+            {
+                case { Enabled: false }:
+                {
+                    var result = await drive.TryReconnect(port.Name);
+                    if (!result)
+                        throw new Exception($"Failed to reconnect to drive on port {port.Name}.");
+                    return;
+                }
+                case { Enabled: true }:
+                    return;
+                default:
+                    Drives.Add(new Drive(port));
+                    break;
+            }
         }
         catch (Exception e)
         {
-            ThrowException(e);
+            Debug.WriteLine($"Error: {e.Message}");
         }
     }
 
     public void Start()
     {
-        _addDriveSub = _serialPortWatcher.SerialPortObservable
-            .Subscribe(AddDrive);
+        _portSub = _serialPortWatcher.SerialPortObservable
+            .Subscribe(UpdateDrive);
     }
 
     public async ValueTask DisposeAsync()
     {
-        _addDriveSub?.Dispose();
-        foreach (var device in Drives)
+        _portSub?.Dispose();
+        foreach (var drive in Drives)
         {
-            await device.DisposeAsync();
+            await drive.DisposeAsync();
         }
         _serialPortWatcher.Dispose();
     }
