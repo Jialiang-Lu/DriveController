@@ -1,11 +1,12 @@
 using System;
 using System.Diagnostics;
+using System.Reactive;
 using Avalonia.Controls;
 using Avalonia.Data;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Threading;
 using MsBox.Avalonia;
-using MsBox.Avalonia.Enums;
 using XeryonApp.ViewModels;
 
 namespace XeryonApp.Views;
@@ -29,9 +30,12 @@ public partial class MainWindow : Window
     {
         if (DataContext is MainViewModel vm)
         {
-            vm.ExplicitExceptions.Subscribe(ex =>
+            vm.ExceptionThrown.RegisterHandler(async interaction =>
             {
-                MessageBoxManager.GetMessageBoxStandard("Error", ex.Message).ShowAsPopupAsync(this);
+                var ex = interaction.Input;
+                Debug.WriteLine($"Exception: {ex.Message}");
+                await MessageBoxManager.GetMessageBoxStandard("Error", ex.Message).ShowWindowDialogAsync(this);
+                interaction.SetOutput(Unit.Default);
             });
             vm.Start();
         }

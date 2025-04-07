@@ -394,6 +394,7 @@ public partial class Drive : ReactiveObject, IComparable<Drive>, IAsyncDisposabl
 
         Stop();
         SetLimits();
+        ResetTarget();
     }
 
     private async ValueTask ResetAsync(decimal? speed = null)

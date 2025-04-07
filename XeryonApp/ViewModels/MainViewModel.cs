@@ -17,6 +17,7 @@ public partial class MainViewModel : ViewModelBase, IAsyncDisposable
 
     private readonly SerialPortWatcher _serialPortWatcher = new("XD-C");
     private IDisposable? _portSub;
+    private bool _initialized;
 
     [ReactiveCommand]
     public async void UpdateDrive(SerialPortInfo port)
@@ -43,14 +44,17 @@ public partial class MainViewModel : ViewModelBase, IAsyncDisposable
         }
         catch (Exception e)
         {
-            Debug.WriteLine($"Error: {e.Message}");
+            ThrowException(e);
         }
     }
 
     public void Start()
     {
+        if (_initialized)
+            return;
         _portSub = _serialPortWatcher.SerialPortObservable
             .Subscribe(UpdateDrive);
+        _initialized = true;
     }
 
     public async ValueTask DisposeAsync()

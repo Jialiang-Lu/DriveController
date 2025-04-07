@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Reactive;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using ReactiveUI;
@@ -7,12 +8,11 @@ namespace XeryonApp.ViewModels;
 
 public class ViewModelBase : ReactiveObject
 {
-    public IObservable<Exception> ExplicitExceptions => _explicitExceptions.ObserveOn(RxApp.MainThreadScheduler);
+    public Interaction<Exception, Unit> ExceptionThrown { get; } =
+        new Interaction<Exception, Unit>(RxApp.MainThreadScheduler);
 
-    private readonly Subject<Exception> _explicitExceptions = new();
-
-    protected void ThrowException(Exception ex)
+    protected async void ThrowException(Exception ex)
     {
-        _explicitExceptions.OnNext(ex);
+        await ExceptionThrown.Handle(ex);
     }
 }
