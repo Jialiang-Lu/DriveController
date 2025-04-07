@@ -20,8 +20,7 @@ public partial class MainWindow : Window
         InitializeComponent();
         LostFocusEvent.AddClassHandler<NumericUpDown>(NumericUpDownHandler);
         KeyDownEvent.AddClassHandler<NumericUpDown>(NumericUpDownHandler);
-        var vm = new MainViewModel();
-        DataContext = vm;
+        DataContext = new MainViewModel();
         Activated += MainWindow_Activated;
         Closing += MainWindow_Closing;
     }
@@ -60,5 +59,10 @@ public partial class MainWindow : Window
         if (sender is not NumericUpDown numericUpDown) return;
         if (e is KeyEventArgs keyEventArgs && keyEventArgs.Key != Key.Enter) return;
         BindingOperations.GetBindingExpressionBase(numericUpDown, NumericUpDown.ValueProperty)?.UpdateSource();
+    }
+
+    private void Exit_OnClick(object? sender, RoutedEventArgs e)
+    {
+        Close();
     }
 }

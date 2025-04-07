@@ -133,7 +133,7 @@ public class Axis
             SendCommandInternal(setting.Key, setting.Value);
         }
 
-        SendCommandInternal(_stage.EncoderResolutionCommand);
+        //SendCommandInternal(_stage.EncoderResolutionCommand);
         SendCommandInternal("SAVE");
     }
 

@@ -69,11 +69,14 @@ public class SerialPortWatcher : IDisposable
 {
     private readonly ManagementEventWatcher _deviceInsertedWatcher, _deviceRemovedWatcher;
     private readonly ReplaySubject<SerialPortInfo> _serialPortSubject = new();
+    private readonly BehaviorSubject<SerialPortInfo[]> _serialPortsSubject = new(Array.Empty<SerialPortInfo>());
     private readonly List<SerialPortInfo> _serialPorts = new();
     private readonly string _descriptionFilter;
     private bool _disposed;
 
     public IReadOnlyList<SerialPortInfo> SerialPorts => _serialPorts.AsReadOnly();
+
+    public IObservable<SerialPortInfo[]> SerialPortsObservable => _serialPortsSubject;
 
     public IObservable<SerialPortInfo> SerialPortObservable => _serialPortSubject;
 
@@ -140,5 +143,6 @@ public class SerialPortWatcher : IDisposable
         {
             _serialPorts.Remove(port);
         }
+        _serialPortsSubject.OnNext(_serialPorts.ToArray());
     }
 }

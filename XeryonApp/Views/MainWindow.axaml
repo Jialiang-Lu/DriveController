@@ -2,6 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:XeryonApp.Views"
         xmlns:vm="using:XeryonApp.ViewModels"
+        xmlns:m="using:XeryonApp.Models"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:converters="clr-namespace:XeryonApp.Converters"
@@ -10,7 +11,8 @@
         x:Class="XeryonApp.Views.MainWindow"
         x:DataType="vm:MainViewModel"
         Icon="/Assets/avalonia-logo.ico"
-        Title="XeryonApp">
+        Title="XeryonApp"
+        Name="MainWindow1">
 
     <Design.DataContext>
         <!-- This only sets the DataContext for the previewer in an IDE,
@@ -23,7 +25,22 @@
     <converters:BoolToTextConverter x:Key="BoolToText"/>
   </Window.Resources>
 
+
   <StackPanel>
+    <DockPanel>
+      <Menu DockPanel.Dock="Top" FontSize="18">
+        <MenuItem Header="_File">
+          <MenuItem Header="_Exit" Click="Exit_OnClick"/>
+        </MenuItem>
+        <MenuItem Header="Connect" ItemsSource="{Binding SerialPorts}">
+          <MenuItem.ItemTemplate>
+            <DataTemplate DataType="m:SerialPortInfo">
+              <MenuItem Header="{Binding}" Command="{Binding ((vm:MainViewModel)DataContext).UpdateDriveCommand, ElementName=MainWindow1}" CommandParameter="{Binding}" IsEnabled="True"/>
+            </DataTemplate>
+          </MenuItem.ItemTemplate>
+        </MenuItem>
+      </Menu>
+    </DockPanel>
     <!--<Grid ColumnDefinitions="150,150,*" RowDefinitions="50">
       <ComboBox Name="SerialPorts" ItemsSource="{Binding SerialPorts}" Grid.Row="0" Grid.Column="0"/>
       <Button Name="Add" Content="Add" Command="{Binding AddDevice}" CommandParameter="{Binding #SerialPorts.SelectedItem}" Grid.Row="0" Grid.Column="1"/>

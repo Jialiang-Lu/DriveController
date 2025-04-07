@@ -2,9 +2,11 @@
 using System;
 using System.Diagnostics;
 using System.Linq;
+using System.Reactive.Linq;
 using System.Threading.Tasks;
 using MsBox.Avalonia;
 using MsBox.Avalonia.Dto;
+using ReactiveUI.Fody.Helpers;
 using ReactiveUI.SourceGenerators;
 using XeryonApp.Models;
 using ObservableAsPropertyAttribute = ReactiveUI.Fody.Helpers.ObservableAsPropertyAttribute;
@@ -13,6 +15,8 @@ namespace XeryonApp.ViewModels;
 
 public partial class MainViewModel : ViewModelBase, IAsyncDisposable
 {
+    public ObservableCollection<SerialPortInfo> SerialPorts { get; } = new();
+
     public SortedObservableCollection<Drive> Drives { get; } = new();
 
     private readonly SerialPortWatcher _serialPortWatcher = new("XD-C");
@@ -54,6 +58,15 @@ public partial class MainViewModel : ViewModelBase, IAsyncDisposable
             return;
         _portSub = _serialPortWatcher.SerialPortObservable
             .Subscribe(UpdateDrive);
+        _serialPortWatcher.SerialPortsObservable
+            .Subscribe(ports =>
+            {
+                SerialPorts.Clear();
+                foreach (var port in ports)
+                {
+                    SerialPorts.Add(port);
+                }
+            });
         _initialized = true;
     }
 
