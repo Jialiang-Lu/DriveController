@@ -38,6 +38,12 @@ public class CustomNumericUpDown : NumericUpDown
     public static readonly StyledProperty<decimal> HighIncrementProperty =
         AvaloniaProperty.Register<CustomNumericUpDown, decimal>(nameof(HighIncrement), 1.0m);
 
+    public void Spin(SpinDirection direction)
+    {
+        var args = new SpinEventArgs(Spinner.SpinEvent, direction, true);
+        OnSpin(args);
+    }
+
     protected override void OnSpin(SpinEventArgs e)
     {
         if (CustomValues.Length == 0)

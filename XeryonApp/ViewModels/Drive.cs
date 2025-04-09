@@ -36,6 +36,11 @@ public partial class Drive : ReactiveObject, IComparable<Drive>, IAsyncDisposabl
     public bool Enabled { get; set; }
 
     /// <summary>
+    /// Whether the drive is currently remote controlled.
+    /// </summary>
+    [Reactive] public bool RemoteControlled { get; set; }
+
+    /// <summary>
     /// Status of the drive.
     /// </summary>
     [ObservableAsProperty]
@@ -52,6 +57,9 @@ public partial class Drive : ReactiveObject, IComparable<Drive>, IAsyncDisposabl
     /// </summary>
     [Reactive]
     public decimal? Speed { get; set; }
+
+    [Reactive]
+    public decimal SpeedFactor { get; private set; }
 
     public decimal[] FixedSpeeds { get; } = { 10, 20, 30, 40, 80, 120, 160, 200, 300, 400, 500, 1000 };
 
@@ -115,6 +123,18 @@ public partial class Drive : ReactiveObject, IComparable<Drive>, IAsyncDisposabl
     public bool IsMoving { get; }
 
     /// <summary>
+    /// Whether the drive is currently scanning.
+    /// </summary>
+    [ObservableAsProperty]
+    public bool IsScanning { get; }
+
+    [Reactive] 
+    public bool IsMovingTop { get; set; }
+
+    [Reactive]
+    public int ScanDirection { get; set; }
+
+    /// <summary>
     /// Whether the target position is reached.
     /// </summary>
     [ObservableAsProperty]
@@ -151,7 +171,7 @@ public partial class Drive : ReactiveObject, IComparable<Drive>, IAsyncDisposabl
         }
         catch (Exception e)
         {
-            _xeryon.Dispose();
+            _xeryon.DisposeAsync().AsTask().Wait();
             throw new InvalidOperationException($"Failed to connect to the drive on port {port.Name}.", e);
         }
         _axis.SendCommand("SRNO=?");
@@ -164,6 +184,7 @@ public partial class Drive : ReactiveObject, IComparable<Drive>, IAsyncDisposabl
         }
         if (maxWait < 0)
         {
+            _xeryon.DisposeAsync().AsTask().Wait();
             throw new TimeoutException("Timeout waiting for the drive to respond.");
         }
         Id = id;
@@ -222,6 +243,10 @@ public partial class Drive : ReactiveObject, IComparable<Drive>, IAsyncDisposabl
             .DistinctUntilChanged()
             .ToPropertyEx(this, x => x.TargetReached);
         this.WhenAnyValue(x => x.Status)
+            .Select(status => status.HasFlag(Status.Scanning))
+            .DistinctUntilChanged()
+            .ToPropertyEx(this, x => x.IsScanning);
+        this.WhenAnyValue(x => x.Status)
             .Select(status => status.HasFlag(Status.MotorOn))
             .DistinctUntilChanged()
             .ToPropertyEx(this, x => x.IsMoving);
@@ -239,11 +264,13 @@ public partial class Drive : ReactiveObject, IComparable<Drive>, IAsyncDisposabl
                 if (pos == null) return;
                 SetTarget(pos.Value, RelativeMode);
             });
-        this.WhenAnyValue(x => x.Speed)
-            .Subscribe(speed =>
+        this.WhenAnyValue(x => x.Speed, x => x.SpeedFactor, x => x.IsScanning)
+            .Subscribe(speeds =>
             {
+                var (speed, factor, isScanning) = speeds;
                 if (speed == null) return;
-                _axis.SetSpeed(new Distance((double)speed.Value, Distance.Type.UM));
+                factor = isScanning ? Math.Clamp(factor, 0, 1) : 1;
+                SetSpeed(speed.Value * factor);
             });
         this.WhenAnyValue(x => x.ZeroPosition)
             .Select(pos => pos != 0)
@@ -293,6 +320,25 @@ public partial class Drive : ReactiveObject, IComparable<Drive>, IAsyncDisposabl
             Start();
     }
 
+    public void StartScan(decimal factor)
+    {
+        if (_axis == null) return;
+        SpeedFactor = Math.Abs(factor);
+        var direction = Math.Sign(factor);
+        if (direction != ScanDirection || !IsScanning)
+            _axis.StartScan(direction);
+        ScanDirection = direction;
+    }
+
+    public async void StopScan()
+    {
+        if (_axis == null || !IsScanning || IsMovingTop) return;
+        SpeedFactor = 1;
+        _axis.StopScan();
+        await Task.Delay(100);
+        ResetTarget();
+    }
+
     [ReactiveCommand]
     public void StepDown(decimal step)
     {
@@ -313,7 +359,10 @@ public partial class Drive : ReactiveObject, IComparable<Drive>, IAsyncDisposabl
         if (relative)
             pos += ZeroPosition;
         pos -= Offset;
+        SetSpeed(0);
         _axis.TargetPosition = new Distance((double)pos, Distance.Type.MM);
+        Stop();
+        SetSpeed(Speed ?? 0);
     }
 
     [ReactiveCommand]
@@ -343,6 +392,11 @@ public partial class Drive : ReactiveObject, IComparable<Drive>, IAsyncDisposabl
     public void GoToZero()
     {
         SetTarget(ZeroPosition);
+    }
+    
+    private void SetSpeed(decimal speed)
+    {
+        _axis?.SetSpeed(new Distance((double)(speed), Distance.Type.UM));
     }
 
     private void SetLimits(decimal? min = null, decimal? max = null)
@@ -382,6 +436,7 @@ public partial class Drive : ReactiveObject, IComparable<Drive>, IAsyncDisposabl
     private async ValueTask MoveTopAsync(decimal? speed = null)
     {
         if (_axis == null || _xeryon == null) return;
+        IsMovingTop = true;
         SetLimits(-MaxRange);
         Speed = speed ?? Speed;
         _axis.StartScan(-1);
@@ -395,6 +450,7 @@ public partial class Drive : ReactiveObject, IComparable<Drive>, IAsyncDisposabl
         Stop();
         SetLimits();
         ResetTarget();
+        IsMovingTop = false;
     }
 
     private async ValueTask ResetAsync(decimal? speed = null)
@@ -405,17 +461,24 @@ public partial class Drive : ReactiveObject, IComparable<Drive>, IAsyncDisposabl
         ResetTarget();
     }
 
-    public ValueTask DisposeAsync()
+    public async ValueTask DisposeAsync(bool reset)
     {
-        //if (Enabled)
-        //{
-        //    Speed = 10000;
-        //    await MoveTopAsync();
-        //}
-        _xeryon?.Dispose();
+        if (Enabled && reset)
+        {
+            Speed = 10000;
+            await MoveTopAsync();
+        }
+        if (_xeryon != null)
+        {
+            await _xeryon.DisposeAsync();
+        }
         _xeryon = null;
         _axis = null;
-        return ValueTask.CompletedTask;
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await DisposeAsync(false);
     }
 
     public int CompareTo(Drive? other)

@@ -11,6 +11,13 @@
 
   <Application.Styles>
     <FluentTheme />
+    <Style Selector="Border.round1">
+      <Setter Property="BorderBrush" Value="Gray"/>
+      <Setter Property="BorderThickness" Value="2"/>
+      <Setter Property="CornerRadius" Value="3"/>
+      <Setter Property="Padding" Value="4"/>
+      <Setter Property="Margin" Value="4"/>
+    </Style>
     <Style Selector="Grid > ComboBox">
       <Setter Property="HorizontalAlignment" Value="Stretch" />
       <Setter Property="VerticalAlignment" Value="Stretch" />

@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace XeryonApp.Models;
 
-public partial class Xeryon : IDisposable
+public partial class Xeryon : IAsyncDisposable
 {
     public string SettingsFile
     {
@@ -95,7 +95,7 @@ public partial class Xeryon : IDisposable
     {
         if (port != null)
             _port = port;
-        Disconnect();
+        Disconnect().Wait();
 
         _serialPort = new SerialPort(_port, _baudRate)
         {
@@ -107,27 +107,26 @@ public partial class Xeryon : IDisposable
             WriteTimeout = 1000
         };
 
+        _serialPort.Close();
         _serialPort.Open();
         Debug.WriteLine($"Serial port {_port} opened successfully.");
         _cancellationTokenSource = new CancellationTokenSource();
         _dataProcessingTask = Task.Run(ProcessDataAsync);
         Connected = true;
-        _dataProcessingTask.ContinueWith(_ =>
-        {
-            Disconnect();
-        });
     }
 
-    private void Disconnect()
+    private async Task Disconnect()
     {
         Connected = false;
-        _cancellationTokenSource?.Cancel();
+        if (_cancellationTokenSource != null)
+        {
+            await _cancellationTokenSource.CancelAsync();
+        }
+        if (_dataProcessingTask != null) await _dataProcessingTask;
         _serialPort?.Close();
-        _serialPort?.Dispose();
-        _dataProcessingTask?.Wait();
     }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
         if (!Connected)
             return;
@@ -137,7 +136,7 @@ public partial class Xeryon : IDisposable
             axis.Stop();
         }
 
-        Disconnect();
+        await Disconnect();
     }
 
     public void SendCommand(Axis? axis, string command)
@@ -244,19 +243,17 @@ public partial class Xeryon : IDisposable
             var line = "";
             try
             {
+                await Task.Delay(5, token);
                 line = _serialPort!.ReadLine().Trim();
-                if (string.IsNullOrEmpty(line)) return;
+                if (string.IsNullOrEmpty(line)) continue;
                 var match = SettingsPattern().Match(line);
-                if (!match.Success) return;
+                if (!match.Success) continue;
                 var letter = match.Groups["letter"].Success ? (char?)match.Groups["letter"].Value[0] : null;
                 var tag = match.Groups["tag"].Value;
-                if (tag.Length != 4)
-                    return;
+                if (tag.Length != 4) continue;
                 var value = int.Parse(match.Groups["value"].Value);
                 var axis = letter == null ? _axisList[0] : GetAxis(letter.Value);
                 axis!.ReceiveData(tag, value);
-
-                await Task.Delay(2, token);
             }
             catch (InvalidOperationException ex)
             {
