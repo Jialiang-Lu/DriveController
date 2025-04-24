@@ -5,6 +5,7 @@ using System.Linq;
 using System.Management;
 using System.Reactive.Subjects;
 using Microsoft.Win32;
+using System.Reactive.Linq;
 
 namespace XeryonApp.Models;
 
@@ -68,7 +69,7 @@ public readonly struct SerialPortInfo : IComparable<SerialPortInfo>, IEquatable<
 public class SerialPortWatcher : IDisposable
 {
     private readonly ManagementEventWatcher _deviceInsertedWatcher, _deviceRemovedWatcher;
-    private readonly ReplaySubject<SerialPortInfo> _serialPortSubject = new();
+    private readonly ReplaySubject<(SerialPortInfo port, bool active)> _serialPortSubject = new();
     private readonly BehaviorSubject<SerialPortInfo[]> _serialPortsSubject = new(Array.Empty<SerialPortInfo>());
     private readonly List<SerialPortInfo> _serialPorts = new();
     private readonly string _descriptionFilter;
@@ -78,7 +79,7 @@ public class SerialPortWatcher : IDisposable
 
     public IObservable<SerialPortInfo[]> SerialPortsObservable => _serialPortsSubject;
 
-    public IObservable<SerialPortInfo> SerialPortObservable => _serialPortSubject;
+    public IObservable<(SerialPortInfo port, bool active)> SerialPortObservable => _serialPortSubject;
 
     public SerialPortWatcher(string descriptionFilter)
     {
@@ -137,11 +138,12 @@ public class SerialPortWatcher : IDisposable
         {
             _serialPorts.Add(port);
             _serialPorts.Sort();
-            _serialPortSubject.OnNext(port);
+            _serialPortSubject.OnNext((port, true));
         }
         else
         {
             _serialPorts.Remove(port);
+            _serialPortSubject.OnNext((port, false));
         }
         _serialPortsSubject.OnNext(_serialPorts.ToArray());
     }

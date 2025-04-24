@@ -111,19 +111,30 @@ public partial class Xeryon : IAsyncDisposable
         _serialPort.Open();
         Debug.WriteLine($"Serial port {_port} opened successfully.");
         _cancellationTokenSource = new CancellationTokenSource();
-        _dataProcessingTask = Task.Run(ProcessDataAsync);
+        _dataProcessingTask = Task.Run(ProcessDataAsync).ContinueWith(_ => Disconnect());
         Connected = true;
     }
 
     private async Task Disconnect()
     {
-        Connected = false;
-        if (_cancellationTokenSource != null)
+        try
         {
-            await _cancellationTokenSource.CancelAsync();
+            if (!Connected)
+                return;
+            Connected = false;
+            if (_cancellationTokenSource != null)
+            {
+                await _cancellationTokenSource.CancelAsync();
+            }
+            if (_dataProcessingTask != null) await _dataProcessingTask;
+            _dataProcessingTask = null;
+            if (_serialPort is { IsOpen: true })
+                _serialPort.Close();
         }
-        if (_dataProcessingTask != null) await _dataProcessingTask;
-        _serialPort?.Close();
+        catch (Exception e)
+        {
+            Debug.WriteLine($"Error during disconnection: {e.Message}");
+        }
     }
 
     public async ValueTask DisposeAsync()

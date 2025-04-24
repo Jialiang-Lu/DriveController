@@ -1,1 +1,3 @@
 # DriveController
+
+[Control Layout](https://www.padcrafter.com/index.php?templates=Drive+Control&aButton=Start&bButton=Stop&startButton=Lock%2FUnlock&yButton=Relative&xButton=Set%2FUnset+Zero+%2F+%28LT%29+Go+To+Zero&rightStick=Set+Target+Up%2FDown&rightStickClick=Reset+Target&leftStickClick=Go+To+Top&dpadLeft=Speed+Decrease+%2F+%28LT%29+Step+Decrease&dpadRight=Speed+Increase+%2F+%28LT%29+Step+Increase&dpadUp=Previous+Drive+%2F+%28LT%29+Step+Up&dpadDown=Next+Drive+%2F+%28LT%29+Step+Down&leftStick=Move+Up%2FDown&plat=%7C0&col=%23242424%2C%23606A6E%2C%23FFFFFF&leftTrigger=%28HOLD%29+Additional+Functions&rightTrigger=%28HOLD%29+Control+All&backButton=Reset#)

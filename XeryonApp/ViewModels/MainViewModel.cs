@@ -54,11 +54,13 @@ public partial class MainViewModel : ViewModelBase, IAsyncDisposable
     }
 
     [ReactiveCommand]
-    public async void UpdateDrive(SerialPortInfo port)
+    public async void UpdateDrive((SerialPortInfo port, bool active) portInfo)
     {
-        Debug.WriteLine($"Port {port} is added");
         try
         {
+            var (port, active) = portInfo;
+            if (!active)
+                return;
             var drive = Drives.FirstOrDefault(d => d.Port.Address == port.Address);
             switch (drive)
             {
@@ -247,13 +249,15 @@ public partial class MainViewModel : ViewModelBase, IAsyncDisposable
                 var pos = thumbstick.Y;
                 if (pos == 0)
                 {
-                    drive.StopScan();
+                    if (drive.RemoteAllowed)
+                        drive.StopScan();
                     if (vibrate)
                         _gamepad!.SetVibration();
                 }
                 else
                 {
-                    drive.StartScan(-(decimal)pos);
+                    if (drive.RemoteAllowed)
+                        drive.StartScan(-pos);
                     if (vibrate)
                         _gamepad!.SetVibration(Math.Abs(pos) * 0.5);
                 }

@@ -41,6 +41,11 @@ public partial class Drive : ReactiveObject, IComparable<Drive>, IAsyncDisposabl
     [Reactive] public bool RemoteControlled { get; set; }
 
     /// <summary>
+    /// Whether the drive is allowed to be remote controlled.
+    /// </summary>
+    [Reactive] public bool RemoteAllowed { get; set; }
+
+    /// <summary>
     /// Status of the drive.
     /// </summary>
     [ObservableAsProperty]
@@ -58,8 +63,11 @@ public partial class Drive : ReactiveObject, IComparable<Drive>, IAsyncDisposabl
     [Reactive]
     public decimal? Speed { get; set; }
 
+    [ObservableAsProperty]
+    public double ActualSpeed { get; }
+
     [Reactive]
-    public decimal SpeedFactor { get; private set; }
+    public double? SpeedFactor { get; private set; }
 
     public decimal[] FixedSpeeds { get; } = { 10, 20, 30, 40, 80, 120, 160, 200, 300, 400, 500, 1000 };
 
@@ -161,6 +169,7 @@ public partial class Drive : ReactiveObject, IComparable<Drive>, IAsyncDisposabl
         TargetPosition = 0;
         ZeroPosition = 0;
         RelativeMode = false;
+        RemoteAllowed = true;
 
         Port = port;
         _xeryon = new Xeryon(port.Name, 115200);
@@ -229,12 +238,25 @@ public partial class Drive : ReactiveObject, IComparable<Drive>, IAsyncDisposabl
         this.WhenAnyValue(x => x.Status)
             .Select(status => status.ToString())
             .ToPropertyEx(this, x => x.StatusString);
-        dataStream.Where(data => data.tag == "EPOS")
-            .Select(_ => (decimal)_axis.CurrentPosition[Distance.Type.MM] + Offset)
+        var epos = dataStream.Where(data => data.tag == "EPOS")
+            .Select(_ => (decimal)_axis.CurrentPosition[Distance.Type.MM]);
+        epos.Select(pos => pos + Offset)
             .ToPropertyEx(this, x => x.AbsolutePosition);
         dataStream.Where(data => data.tag == "DPOS")
             .Select(_ => (decimal)_axis.TargetPosition[Distance.Type.MM] + Offset)
             .ToPropertyEx(this, x => x.AbsoluteTarget);
+        epos.Select(pos => ((double)pos, DateTimeOffset.Now))
+            .Scan<(double pos, DateTimeOffset time), (double speed, double pos, DateTimeOffset time)>(
+                (0d, 0d, DateTimeOffset.Now), (t1, t2) =>
+                {
+                    var (_, prevPos, prevTime) = t1;
+                    var (pos, time) = t2;
+                    var elapsed = (time - prevTime).TotalSeconds;
+                    var speed = (pos - prevPos) * 1000 / elapsed;
+                    return (speed, pos, time);
+                })
+            .Select(t => t.speed)
+            .ToPropertyEx(this, x => x.ActualSpeed);
         this.WhenAnyValue(x => x.CurrentPosition)
             .Select(p => p < 1)
             .ToPropertyEx(this, x => x.SafeToMove);
@@ -269,8 +291,11 @@ public partial class Drive : ReactiveObject, IComparable<Drive>, IAsyncDisposabl
             {
                 var (speed, factor, isScanning) = speeds;
                 if (speed == null) return;
-                factor = isScanning ? Math.Clamp(factor, 0, 1) : 1;
-                SetSpeed(speed.Value * factor);
+                if (factor == null || !isScanning)
+                    factor = 1;
+                else
+                    factor = Math.Clamp(factor.Value, 0, 1);
+                SetSpeed(speed.Value * (decimal)factor);
             });
         this.WhenAnyValue(x => x.ZeroPosition)
             .Select(pos => pos != 0)
@@ -320,7 +345,7 @@ public partial class Drive : ReactiveObject, IComparable<Drive>, IAsyncDisposabl
             Start();
     }
 
-    public void StartScan(decimal factor)
+    public void StartScan(double factor)
     {
         if (_axis == null) return;
         SpeedFactor = Math.Abs(factor);
@@ -396,6 +421,7 @@ public partial class Drive : ReactiveObject, IComparable<Drive>, IAsyncDisposabl
     
     private void SetSpeed(decimal speed)
     {
+        Debug.WriteLine($"Setting speed to {speed} um/s");
         _axis?.SetSpeed(new Distance((double)(speed), Distance.Type.UM));
     }
 
@@ -435,30 +461,37 @@ public partial class Drive : ReactiveObject, IComparable<Drive>, IAsyncDisposabl
 
     private async ValueTask MoveTopAsync(decimal? speed = null)
     {
+        RemoteAllowed = false;
+        SpeedFactor = null;
         if (_axis == null || _xeryon == null) return;
         IsMovingTop = true;
         SetLimits(-MaxRange);
         Speed = speed ?? Speed;
         _axis.StartScan(-1);
-        decimal pos;
+        await Task.Delay(500);
         do
         {
-            pos = AbsolutePosition;
-            await Task.Delay(300);
-        } while (Math.Abs(pos - AbsolutePosition) > 0.002m);
+            Debug.WriteLine($"Actual speed: {ActualSpeed}, speed {Speed}");
+        } while (Math.Abs(ActualSpeed) > (double)Speed! / 5);
 
         Stop();
         SetLimits();
         ResetTarget();
         IsMovingTop = false;
+        SpeedFactor = 1;
+        RemoteAllowed = true;
     }
 
     private async ValueTask ResetAsync(decimal? speed = null)
     {
+        var oldSpeed = Speed;
         await MoveTopAsync(speed);
+        RemoteAllowed = false;
+        Speed = oldSpeed;
         Stop();
         _xeryon?.Reset();
         ResetTarget();
+        RemoteAllowed = true;
     }
 
     public async ValueTask DisposeAsync(bool reset)
