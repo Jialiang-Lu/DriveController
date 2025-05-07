@@ -367,7 +367,7 @@ public partial class Drive : ReactiveObject, IComparable<Drive>, IAsyncDisposabl
     [ReactiveCommand]
     public void StepDown(decimal step)
     {
-        if (step == 0 || IsMoving) return;
+        if (step == 0) return;
         _axis?.Step(new Distance((double)step, Distance.Type.MM));
     }
 
@@ -386,7 +386,6 @@ public partial class Drive : ReactiveObject, IComparable<Drive>, IAsyncDisposabl
         pos -= Offset;
         SetSpeed(0);
         _axis.TargetPosition = new Distance((double)pos, Distance.Type.MM);
-        Stop();
         SetSpeed(Speed ?? 0);
     }
 
@@ -476,7 +475,6 @@ public partial class Drive : ReactiveObject, IComparable<Drive>, IAsyncDisposabl
 
         Stop();
         SetLimits();
-        ResetTarget();
         IsMovingTop = false;
         SpeedFactor = 1;
         RemoteAllowed = true;
