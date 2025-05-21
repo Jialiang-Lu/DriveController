@@ -21,8 +21,8 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        //LostFocusEvent.AddClassHandler<NumericUpDown>(NumericUpDownHandler);
-        //KeyDownEvent.AddClassHandler<NumericUpDown>(NumericUpDownHandler);
+        LostFocusEvent.AddClassHandler<NumericUpDown>(NumericUpDownHandler);
+        KeyDownEvent.AddClassHandler<NumericUpDown>(NumericUpDownHandler);
         DataContext = new MainViewModel();
         Activated += OnActivated;
         Closing += OnClosing;

@@ -93,7 +93,7 @@
 
               <controls:CustomNumericUpDown Name="Speed" Value="{Binding Speed}" FormatString="{}{0:F0}" LowIncrement="1" HighIncrement="1000" Minimum="10" Maximum="10000" CustomValues="{Binding FixedSpeeds}" Grid.Column="2" Grid.Row="0"/>
               <controls:CustomNumericUpDown Name="Step" Value="{Binding Step}" FormatString="{}{0:F2}" LowIncrement="0.1" HighIncrement="1" Minimum="0.1" Maximum="20" CustomValues="{Binding FixedSteps}" Grid.Column="2" Grid.Row="1"/>
-              <NumericUpDown Name="Target" Value="{Binding TargetPosition}" Minimum="-50" Maximum="50" FormatString="{}{0:F2}" Increment="1" Grid.Column="2" Grid.Row="2"/>
+              <NumericUpDown Name="Target" Value="{Binding TargetPosition, UpdateSourceTrigger=Explicit}" Minimum="-50" Maximum="50" FormatString="{}{0:F2}" Increment="1" Grid.Column="2" Grid.Row="2"/>
 
               <Button Name="SetZero" Content="{Binding ZeroSet, Converter={StaticResource BoolToText}, ConverterParameter='Unset Zero|Set Zero'}" Command="{Binding SetZero}" Grid.Column="3" Grid.Row="0"/>
               <Grid ColumnDefinitions="*,*" Grid.Column="3" Grid.Row="1">
