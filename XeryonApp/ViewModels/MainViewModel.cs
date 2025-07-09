@@ -80,7 +80,11 @@ public partial class MainViewModel : ViewModelBase, IAsyncDisposable
         }
         catch (Exception e)
         {
+#if DEBUG
+            throw;
+#else
             ThrowException(e);
+#endif
         }
     }
 

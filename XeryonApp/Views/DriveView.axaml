@@ -19,7 +19,7 @@
     <converters:BoolToTextConverter x:Key="BoolToText"/>
   </UserControl.Resources>
   <Border Classes="round1" BorderBrush="{Binding RemoteControlled, Converter={StaticResource BoolToBrush}, ConverterParameter=LightGreen|Gray}">
-    <Grid RowDefinitions="*,*,*" IsEnabled="{Binding Enabled}" ShowGridLines="True">
+    <Grid RowDefinitions="*,*,*" IsEnabled="{Binding Enabled}">
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="120"/>
         <ColumnDefinition Width="60"/>
@@ -27,10 +27,12 @@
         <ColumnDefinition Width="120"/>
         <ColumnDefinition Width="120"/>
         <ColumnDefinition Width="120"/>
-        <ColumnDefinition Width="*" MinWidth="100"/>
-        <ColumnDefinition Width="*" MinWidth="100"/>
-        <ColumnDefinition Width="*" MinWidth="100"/>
-        <ColumnDefinition Width="*" MinWidth="100"/>
+        <ColumnDefinition Width="*" MinWidth="80"/>
+        <ColumnDefinition Width="*" MinWidth="80"/>
+        <ColumnDefinition Width="*" MinWidth="80"/>
+        <ColumnDefinition Width="*" MinWidth="80"/>
+        <ColumnDefinition Width="*" MinWidth="80"/>
+        <ColumnDefinition Width="*" MinWidth="80"/>
       </Grid.ColumnDefinitions>
 
       <TextBlock Text="{Binding Address, StringFormat='Drive #{0}'}" FontWeight="Bold" Grid.Column="0" Grid.Row="0"/>
@@ -64,11 +66,17 @@
       <TextBlock Text="{Binding AbsolutePosition, StringFormat={}{0:F3}}" Classes="l1" Grid.Column="7" Grid.Row="0"/>
       <TextBlock Text="Relative:" IsVisible="{Binding RelativeMode}" Classes="r1" Grid.Column="6" Grid.Row="1"/>
       <TextBlock Text="{Binding CurrentPosition, StringFormat={}{0:F3}}" IsVisible="{Binding RelativeMode}" Classes="l1" Grid.Column="7" Grid.Row="1"/>
-      <TextBlock Text="Target:" IsVisible="{Binding !TargetReached}" Classes="r1" Grid.Column="8" Grid.Row="0"/>
-      <TextBlock Text="{Binding TargetPosition, StringFormat={}{0:F3}}" IsVisible="{Binding !TargetReached}" Classes="l1" Grid.Column="9" Grid.Row="0"/>
 
-      <ProgressBar Minimum="{Binding MinRange}" Maximum="{Binding MaxRange}" Value="{Binding AbsolutePosition}" Foreground="{Binding IsMoving, Converter={StaticResource BoolToBrush}, ConverterParameter=Gold|DeepSkyBlue}" Height="30" Grid.Column="6" Grid.Row="2" Grid.ColumnSpan="4"/>
-      <ProgressBar Minimum="{Binding MinRange}" Maximum="{Binding MaxRange}" Value="{Binding ZeroPosition}" Background="Transparent" Foreground="Green" Opacity="0.3" Height="30" Grid.Column="6" Grid.Row="2" Grid.ColumnSpan="4"/>
+      <TextBlock Text="Speed:" Classes="r1" Grid.Column="8" Grid.Row="0"/>
+      <TextBlock Text="{Binding ActualSpeed, StringFormat={}{0:F3}}" Classes="l1" Grid.Column="9" Grid.Row="0"/>
+      <TextBlock Text="Target:" IsVisible="{Binding !TargetReached}" Classes="r1" Grid.Column="8" Grid.Row="1"/>
+      <TextBlock Text="{Binding TargetPosition, StringFormat={}{0:F3}}" IsVisible="{Binding !TargetReached}" Classes="l1" Grid.Column="9" Grid.Row="1"/>
+
+      <TextBlock Text="Time:" IsVisible="{Binding !TargetReached}" Classes="r1" Grid.Column="10" Grid.Row="1"/>
+      <TextBlock Text="{Binding TimeFormatted}" IsVisible="{Binding !TargetReached}" Grid.Column="11" Grid.Row="1"/>
+
+      <ProgressBar Minimum="{Binding MinRange}" Maximum="{Binding MaxRange}" Value="{Binding AbsolutePosition}" Foreground="{Binding IsMoving, Converter={StaticResource BoolToBrush}, ConverterParameter=Gold|DeepSkyBlue}" Height="30" Grid.Column="6" Grid.Row="2" Grid.ColumnSpan="6"/>
+      <ProgressBar Minimum="{Binding MinRange}" Maximum="{Binding MaxRange}" Value="{Binding ZeroPosition}" Background="Transparent" Foreground="Green" Opacity="0.3" Height="30" Grid.Column="6" Grid.Row="2" Grid.ColumnSpan="6"/>
     </Grid>
   </Border>
 </UserControl>

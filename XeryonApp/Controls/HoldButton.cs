@@ -164,4 +164,11 @@ public class HoldButton : Button
         }
         base.OnPointerReleased(e);
     }
+
+    protected override void OnPointerExited(PointerEventArgs e)
+    {
+        base.OnPointerExited(e);
+        OnRelease();
+        e.Handled = true;
+    }
 }

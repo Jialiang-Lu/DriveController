@@ -66,10 +66,14 @@ public partial class Drive : ReactiveObject, IComparable<Drive>, IAsyncDisposabl
     [ObservableAsProperty]
     public double ActualSpeed { get; }
 
+    [ObservableAsProperty] 
+    public string TimeFormatted { get; } = "";
+
     [Reactive]
     public double? SpeedFactor { get; private set; }
 
-    public decimal[] FixedSpeeds { get; } = { 10, 20, 30, 40, 80, 120, 160, 200, 300, 400, 500, 1000 };
+    public decimal[] FixedSpeeds { get; } = { 10, 20, 30, 40, 60, 80, 120, 160, 200, 
+        300, 400, 500, 600, 1000 };
 
     /// <summary>
     /// Step size in mm.
@@ -78,7 +82,8 @@ public partial class Drive : ReactiveObject, IComparable<Drive>, IAsyncDisposabl
     public decimal? Step { get; set; }
 
     public decimal[] FixedSteps { get; } =
-        { 0.1m, 0.2m, 0.3m, 0.4m, 0.5m, 0.6m, 0.7m, 0.8m, 0.9m, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+        { 0.1m, 0.2m, 0.3m, 0.4m, 0.5m, 0.6m, 0.7m, 0.8m, 0.9m, 
+            1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
 
     /// <summary>
     /// Offset in mm. Encoder is reset after power on, and this is to compensate for that.
@@ -146,7 +151,8 @@ public partial class Drive : ReactiveObject, IComparable<Drive>, IAsyncDisposabl
     /// Whether the target position is reached.
     /// </summary>
     [ObservableAsProperty]
-    public bool TargetReached { get; }
+    public bool TargetReached { get; } = true;
+
 
     /// <summary>
     /// Minimum range in mm.
@@ -264,13 +270,16 @@ public partial class Drive : ReactiveObject, IComparable<Drive>, IAsyncDisposabl
             .Select(p => p < 1)
             .ToPropertyEx(this, x => x.SafeToMove);
         this.WhenAnyValue(x => x.Status)
-            .Select(status => status.HasFlag(Status.PositionReached))
-            .DistinctUntilChanged()
-            .ToPropertyEx(this, x => x.TargetReached);
-        this.WhenAnyValue(x => x.Status)
             .Select(status => status.HasFlag(Status.Scanning))
             .DistinctUntilChanged()
             .ToPropertyEx(this, x => x.IsScanning);
+        this.WhenAnyValue(x => x.IsScanning)
+            .Delay(isScanning => Observable.Timer(TimeSpan.FromMilliseconds(isScanning ? 0 : 200)))
+            .CombineLatest(
+                this.WhenAnyValue(x => x.Status),
+                (isScanning, status) => isScanning || status.HasFlag(Status.PositionReached))
+            .DistinctUntilChanged()
+            .ToPropertyEx(this, x => x.TargetReached);
         this.WhenAnyValue(x => x.Status)
             .Select(status => status.HasFlag(Status.MotorOn))
             .DistinctUntilChanged()
@@ -303,6 +312,27 @@ public partial class Drive : ReactiveObject, IComparable<Drive>, IAsyncDisposabl
         this.WhenAnyValue(x => x.ZeroPosition)
             .Select(pos => pos != 0)
             .ToPropertyEx(this, x => x.ZeroSet);
+        this.WhenAnyValue(x => x.TargetReached, x => x.IsScanning, x => x.CurrentPosition, x => x.TargetPosition,
+                x => x.ActualSpeed)
+            .Select(t =>
+            {
+                var (targetReached, isScanning, currentPosition, targetPosition, actualSpeed) = t;
+                if (targetReached || isScanning || targetPosition == null)
+                    return "";
+                var time = (double)(targetPosition.Value - currentPosition) / actualSpeed * 1000;
+                switch (time)
+                {
+                    case double.NaN:
+                        return "";
+                    case > 3600:
+                        return ">1h";
+                    default:
+                        var minutes = (int)(time / 60);
+                        var seconds = time % 60;
+                        return $"{minutes:D2}:{seconds:00.0}";
+                }
+
+            }).ToPropertyEx(this, x => x.TimeFormatted);
     }
 
     public async Task<bool> TryReconnect(string? port = null, int maxAttempts = 3)
