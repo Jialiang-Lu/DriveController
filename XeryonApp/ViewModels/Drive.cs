@@ -162,7 +162,7 @@ public partial class Drive : ReactiveObject, IComparable<Drive>, IAsyncDisposabl
     private Axis? _axis;
     private readonly ReplaySubject<bool> _connectionSubject = new(1);
 
-    public Drive(SerialPortInfo port)
+    public Drive()
     {
         Speed = 500;
         Step = 1;
@@ -170,7 +170,10 @@ public partial class Drive : ReactiveObject, IComparable<Drive>, IAsyncDisposabl
         ZeroPosition = 0;
         RelativeMode = false;
         RemoteAllowed = true;
+    }
 
+    public Drive(SerialPortInfo port) : this()
+    {
         Port = port;
         _xeryon = new Xeryon(port.Name, 115200);
         _axis = _xeryon.AddAxis('X');
@@ -345,6 +348,7 @@ public partial class Drive : ReactiveObject, IComparable<Drive>, IAsyncDisposabl
             Start();
     }
 
+    [ReactiveCommand]
     public void StartScan(double factor)
     {
         if (_axis == null) return;
