@@ -67,5 +67,8 @@
     <Style Selector="Grid TextBlock.r1">
       <Setter Property="HorizontalAlignment" Value="Right" />
     </Style>
+    <Style Selector="MenuItem.p0 > MenuItem">
+      <Setter Property="Padding" Value="0"/>
+    </Style>
   </Application.Styles>
 </Application>

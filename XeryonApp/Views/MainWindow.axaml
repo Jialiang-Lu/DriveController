@@ -33,7 +33,7 @@
           <MenuItem Header="_Reset and Exit" Click="OnResetExistClick"/>
           <MenuItem Header="_Exit" Click="OnExistClick"/>
         </MenuItem>
-        <MenuItem Header="_Connect" ItemsSource="{Binding SerialPorts}">
+        <MenuItem Header="_Connect" ItemsSource="{Binding SerialPorts}" Classes="p0">
           <MenuItem.ItemsPanel>
             <ItemsPanelTemplate>
               <StackPanel Orientation="Vertical" Margin="0"/>
