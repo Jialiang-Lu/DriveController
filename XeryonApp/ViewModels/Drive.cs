@@ -66,6 +66,9 @@ public partial class Drive : ReactiveObject, IComparable<Drive>, IAsyncDisposabl
     [ObservableAsProperty]
     public double ActualSpeed { get; }
 
+    [ObservableAsProperty]
+    public double SmoothSpeed { get; }
+
     [ObservableAsProperty] 
     public string TimeFormatted { get; } = "";
 
@@ -255,17 +258,21 @@ public partial class Drive : ReactiveObject, IComparable<Drive>, IAsyncDisposabl
             .Select(_ => (decimal)_axis.TargetPosition[Distance.Type.MM] + Offset)
             .ToPropertyEx(this, x => x.AbsoluteTarget);
         epos.Select(pos => ((double)pos, DateTimeOffset.Now))
+            .Sample(TimeSpan.FromSeconds(0.2))
             .Scan<(double pos, DateTimeOffset time), (double speed, double pos, DateTimeOffset time)>(
                 (0d, 0d, DateTimeOffset.Now), (t1, t2) =>
                 {
                     var (_, prevPos, prevTime) = t1;
                     var (pos, time) = t2;
                     var elapsed = (time - prevTime).TotalSeconds;
-                    var speed = (pos - prevPos) * 1000 / elapsed;
+                    var speed = elapsed > 0 ? (pos - prevPos) * 1000 / elapsed : 0;
                     return (speed, pos, time);
                 })
             .Select(t => t.speed)
             .ToPropertyEx(this, x => x.ActualSpeed);
+        this.WhenAnyValue(x => x.ActualSpeed)
+            .Scan(0d, (prevSpeed, newSpeed) => 0.2 * newSpeed + (1 - 0.2) * prevSpeed)
+            .ToPropertyEx(this, x => x.SmoothSpeed);
         this.WhenAnyValue(x => x.CurrentPosition)
             .Select(p => p < 1)
             .ToPropertyEx(this, x => x.SafeToMove);
@@ -273,11 +280,12 @@ public partial class Drive : ReactiveObject, IComparable<Drive>, IAsyncDisposabl
             .Select(status => status.HasFlag(Status.Scanning))
             .DistinctUntilChanged()
             .ToPropertyEx(this, x => x.IsScanning);
-        this.WhenAnyValue(x => x.IsScanning)
-            .Delay(isScanning => Observable.Timer(TimeSpan.FromMilliseconds(isScanning ? 0 : 200)))
-            .CombineLatest(
-                this.WhenAnyValue(x => x.Status),
-                (isScanning, status) => isScanning || status.HasFlag(Status.PositionReached))
+        this.WhenAnyValue(x => x.IsScanning, x => x.Status)
+            .Select(t =>
+            {
+                var (isScanning, status) = t;
+                return status.HasFlag(Status.PositionReached) || isScanning;
+            })
             .DistinctUntilChanged()
             .ToPropertyEx(this, x => x.TargetReached);
         this.WhenAnyValue(x => x.Status)
@@ -313,23 +321,23 @@ public partial class Drive : ReactiveObject, IComparable<Drive>, IAsyncDisposabl
             .Select(pos => pos != 0)
             .ToPropertyEx(this, x => x.ZeroSet);
         this.WhenAnyValue(x => x.TargetReached, x => x.IsScanning, x => x.CurrentPosition, x => x.TargetPosition,
-                x => x.ActualSpeed)
+                x => x.SmoothSpeed)
             .Select(t =>
             {
-                var (targetReached, isScanning, currentPosition, targetPosition, actualSpeed) = t;
+                var (targetReached, isScanning, currentPosition, targetPosition, speed) = t;
                 if (targetReached || isScanning || targetPosition == null)
                     return "";
-                var time = (double)(targetPosition.Value - currentPosition) / actualSpeed * 1000;
+                var time = (double)(targetPosition.Value - currentPosition) / speed * 1000;
                 switch (time)
                 {
                     case double.NaN:
+                    case >= 3600:
+                    case < 0:
                         return "";
-                    case > 3600:
-                        return ">1h";
                     default:
                         var minutes = (int)(time / 60);
                         var seconds = time % 60;
-                        return $"{minutes:D2}:{seconds:00.0}";
+                        return $"{minutes:00}:{seconds:00}";
                 }
 
             }).ToPropertyEx(this, x => x.TimeFormatted);

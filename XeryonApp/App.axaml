@@ -70,5 +70,13 @@
     <Style Selector="MenuItem.p0 > MenuItem">
       <Setter Property="Padding" Value="0"/>
     </Style>
+    <Style Selector="Button.a0">
+      <Setter Property="Foreground" Value="Tomato"/>
+      <Setter Property="FontWeight" Value="Bold"/>
+      <Setter Property="FontSize" Value="18"/>
+    </Style>
+    <Style Selector="Button.a0:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Foreground" Value="Red"/>
+    </Style>
   </Application.Styles>
 </Application>

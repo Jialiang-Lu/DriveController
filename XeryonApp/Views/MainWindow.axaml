@@ -51,12 +51,12 @@
         </MenuItem>
       </Menu>
     </DockPanel>
-    <Border IsVisible="{Binding RemoteEnabled}">
-      <Grid ColumnDefinitions="200,50" RowDefinitions="50">
+    <Border>
+      <Grid ColumnDefinitions="200,*,120" RowDefinitions="50">
         <Border Classes="round1" BorderBrush="{Binding RemoteConnected, Converter={StaticResource BoolToBrush}, ConverterParameter=LightGreen|Pink}" Grid.Column="0">
           <TextBlock Text="{Binding RemoteConnected, Converter={StaticResource BoolToText}, ConverterParameter='Remote Connected|Remote Disconnected'}" Classes="l0"/>
         </Border>
-        <!--<TextBlock Text="{Binding RemoteDriveAddress}" Grid.Column="1" Classes="l0"/>-->
+        <Button Content="Stop All" Command="{Binding StopAll}" Classes="a0" Grid.Column="2"/>
       </Grid>
     </Border>
     <ItemsControl Name="Drives" ItemsSource="{Binding Drives}">

@@ -54,6 +54,15 @@ public partial class MainViewModel : ViewModelBase, IAsyncDisposable
     }
 
     [ReactiveCommand]
+    public void StopAll()
+    {
+        foreach (var drive in Drives)
+        {
+            drive.Stop();
+        }
+    }
+
+    [ReactiveCommand]
     public async void UpdateDrive((SerialPortInfo port, bool active) portInfo)
     {
         try
