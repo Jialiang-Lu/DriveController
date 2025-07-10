@@ -81,7 +81,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private static void NumericUpDownHandler(object? sender, RoutedEventArgs e)
+    public static void NumericUpDownHandler(object? sender, RoutedEventArgs e)
     {
         if (sender is not NumericUpDown numericUpDown) return;
         if (e is KeyEventArgs keyEventArgs && keyEventArgs.Key != Key.Enter) return;
@@ -97,5 +97,14 @@ public partial class MainWindow : Window
     private void OnExistClick(object? sender, RoutedEventArgs e)
     {
         Close();
+    }
+
+    private void OnPositionSettingsClick(object? sender, RoutedEventArgs e)
+    {
+        var positionWindow = new PositionWindow()
+        {
+            DataContext = DataContext,
+        };
+        positionWindow.Show(this);
     }
 }

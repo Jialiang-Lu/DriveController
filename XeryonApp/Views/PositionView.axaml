@@ -1,0 +1,53 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:XeryonApp.ViewModels"
+             xmlns:converters="clr-namespace:XeryonApp.Converters"
+             xmlns:controls="clr-namespace:XeryonApp.Controls"
+             mc:Ignorable="d"
+             d:DesignWidth="600"
+             d:DesignHeight="40"
+             x:DataType="vm:Drive"
+             x:Class="XeryonApp.Views.PositionView">
+
+  <Design.DataContext>
+    <vm:Drive/>
+  </Design.DataContext>
+
+  <UserControl.Styles>
+    <FluentTheme />
+    <Style Selector="NumericUpDown">
+      <Setter Property="ShowButtonSpinner" Value="False" />
+      <Setter Property="AllowSpin" Value="False" />
+    </Style>
+  </UserControl.Styles>
+
+  <Border Classes="round2">
+    <Grid
+      RowDefinitions="*"
+      ColumnDefinitions="120,120,120,120,120">
+      <TextBlock
+        Text="{Binding Address, StringFormat='Drive #{0}'}"
+        FontWeight="Bold"
+        Grid.Column="0"
+        Grid.Row="0"/>
+      <TextBlock
+        Text="Position:"
+        Classes="r1"
+        Grid.Column="1"/>
+      <controls:CustomNumericUpDown
+        Value="{Binding Offset, UpdateSourceTrigger=Explicit}"
+        FormatString="{}{0:F2}"
+        Grid.Column="2"/>
+      <TextBlock
+        Text="Zero Position:"
+        Classes="r1"
+        Grid.Column="3"/>
+      <controls:CustomNumericUpDown
+        Value="{Binding ZeroPosition, UpdateSourceTrigger=Explicit}"
+        FormatString="{}{0:F2}"
+        Grid.Column="4"/>
+    </Grid>
+  </Border>
+</UserControl>

@@ -1,0 +1,45 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:XeryonApp.Views"
+        xmlns:vm="using:XeryonApp.ViewModels"
+        xmlns:m="using:XeryonApp.Models"
+        xmlns:v="using:XeryonApp.Views"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:converters="clr-namespace:XeryonApp.Converters"
+        xmlns:controls="clr-namespace:XeryonApp.Controls"
+        d:DesignWidth="600" 
+        MinWidth="600"
+        MaxWidth="600"
+        d:DesignHeight="160"
+        MinHeight="40"
+        MaxHeight="160"
+        x:Class="XeryonApp.Views.PositionWindow"
+        x:DataType="vm:MainViewModel"
+        Title="Position Settings">
+
+  <Design.DataContext>
+    <vm:MainViewModel/>
+  </Design.DataContext>
+
+  <Window.Resources>
+    <converters:BoolToBrushConverter x:Key="BoolToBrush"/>
+    <converters:BoolToTextConverter x:Key="BoolToText"/>
+  </Window.Resources>
+
+  <StackPanel>
+    <ItemsControl Name="Drives" ItemsSource="{Binding Drives}">
+      <ItemsControl.ItemsPanel>
+        <ItemsPanelTemplate>
+          <StackPanel Orientation="Vertical" />
+        </ItemsPanelTemplate>
+      </ItemsControl.ItemsPanel>
+      <ItemsControl.ItemTemplate>
+        <DataTemplate DataType="{x:Type vm:Drive}">
+          <v:PositionView Margin="0"/>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+  </StackPanel>
+
+</Window>

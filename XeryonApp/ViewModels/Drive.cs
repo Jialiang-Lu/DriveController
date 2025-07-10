@@ -91,7 +91,8 @@ public partial class Drive : ReactiveObject, IComparable<Drive>, IAsyncDisposabl
     /// <summary>
     /// Offset in mm. Encoder is reset after power on, and this is to compensate for that.
     /// </summary>
-    public decimal Offset { get; private set; } = 0.0m;
+    [Reactive]
+    public decimal Offset { get; set; }
 
     /// <summary>
     /// Current position in mm.
@@ -240,10 +241,11 @@ public partial class Drive : ReactiveObject, IComparable<Drive>, IAsyncDisposabl
                         .Subscribe(pos =>
                         {
                             Offset -= pos;
-                            SetLimits();
                         });
                 }
             });
+        this.WhenAnyValue(x => x.Offset)
+            .Subscribe(_ => SetLimits());
         dataStream.Where(data => data.tag == "STAT")
             .Select(data => (Status)data.value)
             .ToPropertyEx(this, x => x.Status);

@@ -15,17 +15,14 @@
         Title="XeryonApp"
         Name="MainWindow1">
 
-    <Design.DataContext>
-        <!-- This only sets the DataContext for the previewer in an IDE,
-             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
-        <vm:MainViewModel/>
-    </Design.DataContext>
+  <Design.DataContext>
+    <vm:MainViewModel/>
+  </Design.DataContext>
 
   <Window.Resources>
     <converters:BoolToBrushConverter x:Key="BoolToBrush"/>
     <converters:BoolToTextConverter x:Key="BoolToText"/>
   </Window.Resources>
-
 
   <StackPanel>
     <DockPanel>
@@ -46,8 +43,10 @@
             </DataTemplate>
           </MenuItem.ItemTemplate>
         </MenuItem>
-        <MenuItem Header="_Remote">
-          <MenuItem Header="{Binding RemoteEnabled, Converter={StaticResource BoolToText}, ConverterParameter='_Disable|_Enable'}" Command="{Binding ToggleRemote}"/>
+        <MenuItem Header="_Settings">
+          <MenuItem Header="{Binding RemoteEnabled, Converter={StaticResource BoolToText}, ConverterParameter='_Disable Remote|_Enable Remote'}" Command="{Binding ToggleRemote}"/>
+          <Separator/>
+          <MenuItem Header="_Position Settings" Click="OnPositionSettingsClick"/>
         </MenuItem>
       </Menu>
     </DockPanel>
