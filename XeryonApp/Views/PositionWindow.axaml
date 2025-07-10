@@ -16,7 +16,8 @@
         MaxHeight="160"
         x:Class="XeryonApp.Views.PositionWindow"
         x:DataType="vm:MainViewModel"
-        Title="Position Settings">
+        Title="Position Settings"
+        SizeToContent="WidthAndHeight">
 
   <Design.DataContext>
     <vm:MainViewModel/>

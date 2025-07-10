@@ -101,10 +101,22 @@ public partial class MainWindow : Window
 
     private void OnPositionSettingsClick(object? sender, RoutedEventArgs e)
     {
-        var positionWindow = new PositionWindow()
+        var positionWindow = new PositionWindow
         {
             DataContext = DataContext,
         };
         positionWindow.Show(this);
+    }
+
+    private void OnGamepadHelpClick(object? sender, RoutedEventArgs e)
+    {
+        var gamepadHelpWindow = new GamepadHelpWindow();
+        gamepadHelpWindow.Show(this);
+    }
+
+    private void OnAboutClick(object? sender, RoutedEventArgs e)
+    {
+        var aboutWindow = new AboutWindow();
+        aboutWindow.Show(this);
     }
 }

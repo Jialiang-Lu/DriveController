@@ -8,12 +8,17 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:converters="clr-namespace:XeryonApp.Converters"
         xmlns:controls="clr-namespace:XeryonApp.Controls"
-        mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800" MinWidth="1200"
+        mc:Ignorable="d"
+        d:DesignWidth="1200"
+        MinWidth="1200"
+        d:DesignHeight="800"
+        MinHeight="222"
         x:Class="XeryonApp.Views.MainWindow"
         x:DataType="vm:MainViewModel"
         Icon="/Assets/avalonia-logo.ico"
-        Title="XeryonApp"
-        Name="MainWindow1">
+        Title="Drive Controller"
+        Name="MainWindow1"
+        SizeToContent="WidthAndHeight">
 
   <Design.DataContext>
     <vm:MainViewModel/>
@@ -44,9 +49,22 @@
           </MenuItem.ItemTemplate>
         </MenuItem>
         <MenuItem Header="_Settings">
-          <MenuItem Header="{Binding RemoteEnabled, Converter={StaticResource BoolToText}, ConverterParameter='_Disable Remote|_Enable Remote'}" Command="{Binding ToggleRemote}"/>
+          <MenuItem 
+            Header="{Binding RemoteEnabled, Converter={StaticResource BoolToText}, ConverterParameter='_Disable Remote|_Enable Remote'}" 
+            Command="{Binding ToggleRemote}"/>
           <Separator/>
-          <MenuItem Header="_Position Settings" Click="OnPositionSettingsClick"/>
+          <MenuItem 
+            Header="_Position Settings ..." 
+            Click="OnPositionSettingsClick"/>
+        </MenuItem>
+        <MenuItem Header="_Help">
+          <MenuItem 
+            Header="_Gamepad Help ..." 
+            Click="OnGamepadHelpClick"/>
+          <Separator/>
+          <MenuItem 
+            Header="_About ..." 
+            Click="OnAboutClick"/>
         </MenuItem>
       </Menu>
     </DockPanel>

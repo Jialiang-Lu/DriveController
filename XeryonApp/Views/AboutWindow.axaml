@@ -1,0 +1,38 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" 
+        d:DesignWidth="600" 
+        d:DesignHeight="350"
+        Width="600"
+        Height="350"
+        x:Class="XeryonApp.Views.AboutWindow"
+        Title="AboutWindow"
+        CanResize="False">
+  <StackPanel Margin="20" Spacing="10">
+    <TextBlock Text="Drive Controller" FontWeight="Bold" FontSize="18" HorizontalAlignment="Center"/>
+    <TextBlock Text="Version 1.0.0" HorizontalAlignment="Center"/>
+    <TextBlock Text="© 2025 Jialiang Lu" HorizontalAlignment="Center"/>
+    <TextBlock Text="Released under the GNU GPL v3 License" FontStyle="Italic" FontSize="12" HorizontalAlignment="Center" Margin="0"/>
+    <Border BorderThickness="1" BorderBrush="Gray" Padding="8" Margin="0" CornerRadius="4">
+      <ScrollViewer>
+        <TextBlock TextWrapping="Wrap">
+          This program is free software: you can redistribute it and/or modify
+          it under the terms of the GNU General Public License as published by
+          the Free Software Foundation, either version 3 of the License, or
+          (at your option) any later version.
+
+          This program is distributed in the hope that it will be useful,
+          but WITHOUT ANY WARRANTY; without even the implied warranty of
+          MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+          GNU General Public License for more details.
+
+          You should have received a copy of the GNU General Public License
+          along with this program. If not, see https://www.gnu.org/licenses/.
+        </TextBlock>
+      </ScrollViewer>
+    </Border>
+    <TextBlock Text="For source code, visit: https://github.com/Jialiang-Lu/DriveController" FontSize="12" HorizontalAlignment="Center"/>
+  </StackPanel>
+</Window>
