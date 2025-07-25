@@ -8,7 +8,7 @@ public partial class PositionWindow : Window
 {
     public PositionWindow()
     {
-        InitializeComponent(attachDevTools:false);
+        InitializeComponent();
         LostFocusEvent.AddClassHandler<NumericUpDown>(MainWindow.NumericUpDownHandler);
         KeyDownEvent.AddClassHandler<NumericUpDown>(MainWindow.NumericUpDownHandler);
     }
