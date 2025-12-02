@@ -3,13 +3,13 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        d:DesignWidth="1878"
-        Width="1878"
-        d:DesignHeight="597"
-        Height="597"
+        d:DesignWidth="1856"
+        Width="1856"
+        d:DesignHeight="797"
+        Height="797"
         x:Class="XeryonApp.Views.GamepadHelpWindow"
         Title="Gamepad Help"
-        CanResize="False">
+        CanResize="True">
   <Grid>
     <Image 
       Source="avares://XeryonApp/Assets/Control.png"
