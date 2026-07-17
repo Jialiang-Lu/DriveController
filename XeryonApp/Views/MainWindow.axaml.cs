@@ -9,6 +9,7 @@ using Avalonia.Interactivity;
 using Avalonia.LogicalTree;
 using Avalonia.Threading;
 using MsBox.Avalonia;
+using MsBox.Avalonia.Enums;
 using XeryonApp.Controls;
 using XeryonApp.ViewModels;
 
@@ -16,7 +17,7 @@ namespace XeryonApp.Views;
 
 public partial class MainWindow : Window
 {
-    private bool _isClosingConfirmed, _closeRequested, _resetBeforeClose;
+    private bool _isClosingConfirmed, _resetBeforeClose;
 
     public MainWindow()
     {
@@ -25,7 +26,6 @@ public partial class MainWindow : Window
         KeyDownEvent.AddClassHandler<NumericUpDown>(NumericUpDownHandler);
         DataContext = new MainViewModel();
         Activated += OnActivated;
-        Closing += OnClosing;
     }
 
     private void OnActivated(object? sender, EventArgs e)
@@ -67,17 +67,35 @@ public partial class MainWindow : Window
         return namedChild;
     }
 
-    private async void OnClosing(object? sender, WindowClosingEventArgs e)
+    protected override async void OnClosing(WindowClosingEventArgs e)
     {
-        if (DataContext is MainViewModel vm && !_isClosingConfirmed)
+        try
+        {
+            base.OnClosing(e);
+
+            if (DataContext is MainViewModel vm && !_isClosingConfirmed)
+            {
+                e.Cancel = true;
+                if (!vm.SafeToClose)
+                {
+                    var closeBox = MessageBoxManager.GetMessageBoxStandard(
+                        "Exit",
+                        "Are you sure you want to close?",
+                        ButtonEnum.YesNo,
+                        MsBox.Avalonia.Enums.Icon.Question);
+                    var result = await closeBox.ShowAsync();
+                    if (result != ButtonResult.Yes) return;
+                }
+                await vm.DisposeAsync(_resetBeforeClose);
+                _isClosingConfirmed = true;
+                Close();
+            }
+        }
+        catch (Exception ex)
         {
             e.Cancel = true;
-            if (_closeRequested)
-                return;
-            _closeRequested = true;
-            await vm.DisposeAsync(_resetBeforeClose);
-            _isClosingConfirmed = true;
-            Close();
+            var box = MessageBoxManager.GetMessageBoxStandard("Error", $"{ex.Message}\n{ex.StackTrace}");
+            await box.ShowWindowDialogAsync(this);
         }
     }
 

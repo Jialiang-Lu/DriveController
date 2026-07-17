@@ -40,6 +40,8 @@ public partial class MainViewModel : ViewModelBase, IAsyncDisposable
 
     public SortedObservableCollection<Drive> Drives { get; } = new();
 
+    public bool SafeToClose => Drives.All(d => d.SafeToMove);
+
     private readonly SerialPortWatcher _serialPortWatcher = new("XD-C");
     private IDisposable? _portSub, _remoteSub;
     private bool _initialized, _leftTrigger, _rightTrigger;
