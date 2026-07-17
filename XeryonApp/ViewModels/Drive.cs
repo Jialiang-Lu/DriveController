@@ -14,6 +14,8 @@ namespace XeryonApp.ViewModels;
 
 public partial class Drive : ReactiveObject, IComparable<Drive>, IAsyncDisposable
 {
+    private static Stopwatch _stopwatch = Stopwatch.StartNew();
+
     /// <summary>
     /// Physical address of the drive.
     /// </summary>
@@ -254,26 +256,42 @@ public partial class Drive : ReactiveObject, IComparable<Drive>, IAsyncDisposabl
             .ToPropertyEx(this, x => x.StatusString);
         var epos = dataStream.Where(data => data.tag == "EPOS")
             .Select(_ => (decimal)_axis.CurrentPosition[Distance.Type.MM]);
+        //var time = dataStream.Where(data => data.tag == "TIME")
+        //    .Select(t => t.value); // TIME is in 0.1 ms, max is 65535, so it wraps around every 6.5535 seconds
         epos.Select(pos => pos + Offset)
             .ToPropertyEx(this, x => x.AbsolutePosition);
         dataStream.Where(data => data.tag == "DPOS")
             .Select(_ => (decimal)_axis.TargetPosition[Distance.Type.MM] + Offset)
             .ToPropertyEx(this, x => x.AbsoluteTarget);
-        epos.Select(pos => ((double)pos, DateTimeOffset.Now))
+        //epos.Zip(time)
+        //    .Scan<(decimal pos, int time), (double speed, decimal pos, int time)>(
+        //        (0d, 0, 0), (t1, t2) =>
+        //        {
+        //            var (_, prevPos, prevTime) = t1;
+        //            var (pos, currTime) = t2;
+        //            if (currTime < prevTime) // handle wrap around
+        //                currTime += 65536;
+        //            var elapsed = (currTime - prevTime) / 10000.0; // convert to seconds
+        //            var speed = elapsed > 0 ? (double)(pos - prevPos) * 1000 / elapsed : 0;
+        //            return (speed, pos, currTime);
+        //        })
+        //    .Select(t => t.speed)
+        //    .ToPropertyEx(this, x => x.ActualSpeed);
+        epos.Select(pos => ((double)pos, _stopwatch.ElapsedMilliseconds))
             .Sample(TimeSpan.FromSeconds(0.2))
-            .Scan<(double pos, DateTimeOffset time), (double speed, double pos, DateTimeOffset time)>(
-                (0d, 0d, DateTimeOffset.Now), (t1, t2) =>
+            .Scan<(double pos, long time), (double speed, double pos, long time)>(
+                (0d, 0d, 0L), (t1, t2) =>
                 {
                     var (_, prevPos, prevTime) = t1;
                     var (pos, time) = t2;
-                    var elapsed = (time - prevTime).TotalSeconds;
+                    var elapsed = (time - prevTime) / 1000.0;
                     var speed = elapsed > 0 ? (pos - prevPos) * 1000 / elapsed : 0;
                     return (speed, pos, time);
                 })
             .Select(t => t.speed)
             .ToPropertyEx(this, x => x.ActualSpeed);
         this.WhenAnyValue(x => x.ActualSpeed)
-            .Scan(0d, (prevSpeed, newSpeed) => 0.2 * newSpeed + (1 - 0.2) * prevSpeed)
+            .Scan(0d, (prevSpeed, newSpeed) => IsMoving ? 0.6 * newSpeed + (1 - 0.6) * prevSpeed : 0)
             .ToPropertyEx(this, x => x.SmoothSpeed);
         this.WhenAnyValue(x => x.CurrentPosition)
             .Select(p => p < 1)

@@ -212,7 +212,7 @@
         Grid.Column="8" 
         Grid.Row="0"/>
       <TextBlock 
-        Text="{Binding ActualSpeed, StringFormat={}{0:F0}}" 
+        Text="{Binding SmoothSpeed, StringFormat={}{0:F0}}" 
         Classes="l1" 
         Grid.Column="9" 
         Grid.Row="0"/>
