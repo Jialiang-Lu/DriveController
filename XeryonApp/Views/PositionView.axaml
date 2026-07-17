@@ -33,7 +33,7 @@
         Grid.Column="0"
         Grid.Row="0"/>
       <TextBlock
-        Text="Position:"
+        Text="Offset:"
         Classes="r1"
         Grid.Column="1"/>
       <controls:CustomNumericUpDown

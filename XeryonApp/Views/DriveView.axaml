@@ -207,12 +207,14 @@
         Grid.Row="1"/>
 
       <TextBlock 
-        Text="Speed:" 
+        Text="Zero:" 
+        IsVisible="{Binding ZeroSet}" 
         Classes="r1" 
         Grid.Column="8" 
         Grid.Row="0"/>
       <TextBlock 
-        Text="{Binding SmoothSpeed, StringFormat={}{0:F0}}" 
+        Text="{Binding ZeroPosition, StringFormat={}{0:F3}}" 
+        IsVisible="{Binding ZeroSet}" 
         Classes="l1" 
         Grid.Column="9" 
         Grid.Row="0"/>
@@ -228,6 +230,16 @@
         Grid.Column="9" 
         Grid.Row="1"/>
 
+      <TextBlock 
+        Text="Speed:" 
+        Classes="r1" 
+        Grid.Column="10" 
+        Grid.Row="0"/>
+      <TextBlock 
+        Text="{Binding SmoothSpeed, StringFormat={}{0:F0}}" 
+        Classes="l1" 
+        Grid.Column="11" 
+        Grid.Row="0"/>
       <TextBlock 
         Text="Time:" 
         Classes="r1" 
